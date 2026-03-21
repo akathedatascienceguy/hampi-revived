@@ -1,0 +1,40 @@
+project:
+  name: "Hampi Revived"
+  description: "3D Reconstruction of Hampi Ruins using Computer Vision & Data Science"
+  version: "1.0.0"
+
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  target_size: [1024, 768]
+  max_images: 20
+
+features:
+  detector: "SIFT"           # SIFT | ORB | AKAZE
+  max_keypoints: 5000
+  match_ratio_threshold: 0.75
+  min_matches_for_pair: 20
+
+sfm:
+  ransac_threshold: 1.0
+  min_inliers: 15
+  # Assumed intrinsics for unknown cameras (wide FOV ~60deg)
+  focal_length_factor: 1.2   # focal = factor * max(W, H)
+
+reconstruction:
+  voxel_size: 0.05
+  nb_neighbors: 20
+  std_ratio: 2.0
+  poisson_depth: 9
+
+groq:
+  model: "llama-3.2-11b-vision-preview"
+  text_model: "llama-3.3-70b-versatile"
+  max_tokens: 1024
+
+outputs:
+  features_dir: "outputs/features"
+  point_clouds_dir: "outputs/point_clouds"
+  meshes_dir: "outputs/meshes"
+  visualizations_dir: "outputs/visualizations"
+  reports_dir: "outputs/reports"
