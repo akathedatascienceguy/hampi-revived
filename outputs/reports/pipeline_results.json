@@ -1,0 +1,154 @@
+{
+  "stages": {
+    "ingestion": {
+      "n_images": 12,
+      "resolution": "1024\u00d7768",
+      "mean_brightness": 139.90449301401773,
+      "std_brightness": 18.580650431302125
+    },
+    "preprocessing": [
+      {
+        "idx": 0,
+        "blur_score": 10172.9,
+        "brightness": 151.4,
+        "exposure": "good",
+        "n_keypoints": 3431
+      },
+      {
+        "idx": 1,
+        "blur_score": 5890.9,
+        "brightness": 140.2,
+        "exposure": "good",
+        "n_keypoints": 3144
+      },
+      {
+        "idx": 2,
+        "blur_score": 462.9,
+        "brightness": 140.4,
+        "exposure": "good",
+        "n_keypoints": 5001
+      },
+      {
+        "idx": 3,
+        "blur_score": 12330.3,
+        "brightness": 162.8,
+        "exposure": "good",
+        "n_keypoints": 5000
+      },
+      {
+        "idx": 4,
+        "blur_score": 1251.4,
+        "brightness": 156.2,
+        "exposure": "good",
+        "n_keypoints": 3756
+      },
+      {
+        "idx": 5,
+        "blur_score": 22695.7,
+        "brightness": 135.7,
+        "exposure": "good",
+        "n_keypoints": 5001
+      },
+      {
+        "idx": 6,
+        "blur_score": 7179.5,
+        "brightness": 136.5,
+        "exposure": "good",
+        "n_keypoints": 5000
+      },
+      {
+        "idx": 7,
+        "blur_score": 51.9,
+        "brightness": 100.1,
+        "exposure": "good",
+        "n_keypoints": 406
+      },
+      {
+        "idx": 8,
+        "blur_score": 18130.3,
+        "brightness": 169.5,
+        "exposure": "good",
+        "n_keypoints": 3735
+      },
+      {
+        "idx": 9,
+        "blur_score": 5208.5,
+        "brightness": 133.5,
+        "exposure": "good",
+        "n_keypoints": 5000
+      },
+      {
+        "idx": 10,
+        "blur_score": 1822.5,
+        "brightness": 145.0,
+        "exposure": "good",
+        "n_keypoints": 5000
+      },
+      {
+        "idx": 11,
+        "blur_score": 11230.3,
+        "brightness": 147.4,
+        "exposure": "good",
+        "n_keypoints": 5000
+      }
+    ],
+    "features": {
+      "total_images": 12,
+      "keypoints": {
+        "min": 406,
+        "max": 5001,
+        "mean": 4122.833333333333
+      },
+      "connected_pairs": 47,
+      "matches": {
+        "min": 20,
+        "max": 80,
+        "mean": 32.680851063829785
+      }
+    },
+    "sfm": {
+      "n_images": 12,
+      "n_points": 69,
+      "n_cameras": 6,
+      "n_pairs": 47
+    },
+    "dense": {
+      "n_dense_pts": 106525,
+      "n_total_pts": 106594
+    },
+    "mesh": {
+      "ply": "outputs/meshes/hampi_cloud_trimesh.ply",
+      "n_points": 106594,
+      "backend": "trimesh"
+    }
+  },
+  "outputs": {
+    "keypoint_images": [
+      "outputs/features/keypoints_00.jpg",
+      "outputs/features/keypoints_01.jpg",
+      "outputs/features/keypoints_02.jpg",
+      "outputs/features/keypoints_03.jpg"
+    ],
+    "match_images": [
+      "outputs/features/matches_00_03.jpg",
+      "outputs/features/matches_00_07.jpg",
+      "outputs/features/matches_00_09.jpg",
+      "outputs/features/matches_00_10.jpg",
+      "outputs/features/matches_02_03.jpg",
+      "outputs/features/matches_02_05.jpg"
+    ],
+    "keypoint_distribution": "outputs/features/keypoint_distribution.png",
+    "sparse_cloud_npy": "outputs/point_clouds/sparse_pts.npy",
+    "ply": "outputs/meshes/hampi_cloud_trimesh.ply",
+    "n_points": 106594,
+    "backend": "trimesh",
+    "visualizations": {
+      "image_grid": "outputs/visualizations/image_grid.png",
+      "match_matrix": "outputs/visualizations/match_matrix.png",
+      "3d_cloud": "outputs/visualizations/sparse_cloud_3d.png",
+      "interactive_html": "outputs/visualizations/interactive_cloud.html",
+      "topdown": "outputs/visualizations/topdown_view.png",
+      "quality_dashboard": "outputs/visualizations/quality_dashboard.png"
+    }
+  }
+}

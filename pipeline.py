@@ -288,7 +288,8 @@ def run_pipeline(cfg: dict, args: argparse.Namespace) -> dict:
     logger.info(f"  3D Points:   {len(pts_all):,}")
     logger.info(f"  Cameras:     {len(camera_poses)}")
     if mesh_result:
-        logger.info(f"  Triangles:   {mesh_result.get('n_triangles', 'N/A'):,}")
+        n_tri = mesh_result.get('n_triangles')
+        logger.info(f"  Triangles:   {n_tri:,}" if n_tri else f"  Mesh:        {list(mesh_result.keys())}")
     logger.info(f"\n  Key outputs:")
     logger.info(f"  • Visualizations : {vis_dir}/")
     logger.info(f"  • Point clouds   : {cfg['outputs']['point_clouds_dir']}/")
