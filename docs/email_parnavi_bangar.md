@@ -1,10 +1,10 @@
-# Email — Collaboration Request: Hampi Revived
+# Email — Collaboration Request v2
 
 ---
 
 **To:** Parnavi Bangar
 **From:** Nikita Gupta · Yashvardhan Gupta
-**Subject:** Bringing Hampi's Ruins Back — A Data Science Project, and a Conversation
+**Subject:** Hampi Revived — A Collaboration Proposal
 
 ---
 
@@ -20,46 +20,43 @@ The project started as a technical exercise. It has become something we care abo
 
 ---
 
-**What we have built so far**
+**What it does**
 
-The pipeline runs end-to-end and costs nothing to run — entirely on open-source tools and free cloud APIs:
+The pipeline runs in two tracks.
 
-| Stage | What happens |
-|---|---|
-| Preprocessing | CLAHE contrast enhancement + denoising, optimised for carved-granite photography |
-| Feature extraction | SIFT keypoint detection (4,100+ features per image), FLANN matching across image pairs |
-| 3D reconstruction | Structure from Motion → 106,000+ point dense cloud → Poisson surface mesh |
-| Generative completion | SDXL inpainting with a damage mask: the model fills *only* the missing section of a ruined monument using the surviving stonework as context |
+The first takes a set of overlapping photographs of a monument and reconstructs it as a navigable 3D point cloud and surface mesh — a kind of digital excavation without a trowel. The second, and more ambitious, track uses generative AI to complete what is missing. The model detects where a structure is ruined, masks that region, and uses the surviving stonework as context to fill in what is gone — the intact arch, the carved walls, the existing tiers all inform what gets generated. The lower portion of the image stays pixel-perfect original photography. Only the missing section is predicted.
 
-The most recent result is a restoration of a partially destroyed entrance gopuram. The model identified the damage boundary automatically (the row where Laplacian sharpness drops sharply), masked the ruined top, and predicted a complete tiered shikhara tower rising above the existing intact carved doorway. The lower 59% of the image — the ornate arch, flanking walls, the stone path — is untouched, pixel-perfect from the original photograph.
-
-It is imperfect. The generated tower is plausible Dravidian architecture but not specifically Vijayanagara — the model does not yet know the particular vocabulary of this site. That is precisely the gap we are writing to you about.
+We have run this on a partially destroyed entrance gopuram at Hampi. The model predicted a complete tiered shikhara tower rising above the original carved doorway, blended at the damage boundary. It is imperfect. But it holds up as a proof of concept — and it points clearly at what comes next.
 
 ---
 
-**Why we are reaching out to you**
+**Where we are taking it — and why we are writing to you**
 
-The single most impactful improvement we could make to this pipeline is training it on Hampi-specific data. Not generic "Indian temple" imagery, but annotated photographs of Vijayanagara structures: the specific sandstone colour, the tier proportions of entrance gopurams in this complex, the density and style of the carved friezes, the relationship between pillar height and superstructure across different monument types.
+We are now fine-tuning the AI model specifically on Hampi. We have collated 50–100 photographs of Vijayanagara monuments from public archives and are training a LoRA — a technique that teaches the model the particular visual vocabulary of this site rather than a generic approximation of Indian temple architecture.
 
-Your work on Hampi — the research, the documentation, the deep familiarity with the site — represents exactly the kind of grounded knowledge that our model currently lacks and cannot learn from the internet alone.
+The difference is substantial. A model trained on Hampi learns the oxidised sandstone palette, the specific tier proportions of entrance gopurams in this complex, the density and rhythm of the carved friezes. Completions stop looking like plausible Dravidian architecture and start looking like *this place*.
 
-We would love to explore whether there is a form of collaboration that works for you. We are thinking about:
+But there is a hard ceiling to what photographs alone can teach.
 
-1. **Annotated image datasets** — site-specific photographs with monument labels, period, and structural condition, which would train a fine-tuned model anchored to Vijayanagara architectural vocabulary
-2. **Iconographic validation** — a layer where the AI-generated completions are reviewed and corrected against your knowledge, producing a historically defensible output rather than a visually plausible one
-3. **Conservation mapping** — overlaying the 3D mesh against known structural vulnerabilities to produce a damage-priority heatmap that ASI conservators could use practically
+Photographs cannot tell the model which structural elements are original versus later repair. They cannot convey the iconographic intent of a specific carved frieze, the period within the Vijayanagara chronology a structure belongs to, or which ruins are most archaeologically urgent. That knowledge lives in fieldwork and excavation records — in the kind of deep site familiarity that takes years to accumulate and cannot be scraped from the internet.
 
-In return: all code is open-sourced and fully available to you, we would offer full co-authorship on any resulting paper or exhibition, and we can generate interactive 3D models of any specific monuments you specify — suitable for digital archival, publication, or exhibition use.
+We believe you have that knowledge. And we think it is precisely what this pipeline needs to become genuinely useful rather than merely technically interesting.
 
 ---
 
-**In short**
+**What we are proposing**
 
-We have built a technically functional pipeline. What it needs to become genuinely useful — archaeologically, conservationally, historically — is the kind of domain knowledge that takes years to accumulate and cannot be scraped from the web. We think you might have that knowledge, and we would be glad to find out if this is a conversation worth having.
+A collaboration, on whatever terms work for you. Concretely, we have three things in mind:
 
-We are happy to share the current outputs, the full codebase, and a live walkthrough of the pipeline at any time that is convenient for you.
+1. **Annotated images** — photographs with monument name, period, and structural condition would anchor the model's training to archaeologically grounded labels rather than visual guesswork
+2. **Iconographic review** — your assessment of whether the AI-generated completions are plausible or wrong, so we can correct what the model has learned about what Vijayanagara structures actually looked like
+3. **Priority monuments** — a short list of structures most in need of digital documentation, so our effort goes where it matters most
 
-Thank you for your work on Hampi. The ruins deserve to be seen whole.
+In return: full co-authorship on any resulting paper or exhibition, interactive 3D models of any monuments you specify, and the complete fine-tuned model and codebase — available to you under whatever terms you prefer.
+
+We would be glad to share our current outputs and walk you through the pipeline at any time that suits you. Even a single conversation would move this meaningfully forward.
+
+Thank you for your time and for your work on Hampi. The ruins deserve to be seen whole.
 
 Warm regards,
 
@@ -67,7 +64,7 @@ Warm regards,
 Head of Data Science, super.money
 
 **Yashvardhan Gupta**
-Founding Member, super.money
+Founding Member in Data Science, super.money
 
 ---
 
