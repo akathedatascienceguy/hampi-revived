@@ -306,66 +306,138 @@ W = W₀ + ΔW = W₀ + (α/r) · B @ A
 where:
 - **A ∈ ℝ^(r×d)** — down-projection (randomly initialised)
 - **B ∈ ℝ^(d×r)** — up-projection (zero-initialised, so ΔW = 0 at start)
-- **r** = rank (4 in this pipeline)
-- **α** = scaling factor (16.0)
+- **r** = rank (8 in this pipeline — doubled from initial rank-4 to increase style capacity)
+- **α** = scaling factor (32.0, set to 4×r per standard practice)
 
 Targeted modules: `to_k`, `to_q`, `to_v`, `to_out.0` — the four attention projections in every transformer block of the U-Net.
 
 **Parameter count:**
-- Trainable LoRA parameters: **797,184** (0.09% of total)
+- Trainable LoRA parameters: **~12M** at rank 8 (~1.4% of attention parameters)
 - Frozen base parameters: **859,520,964**
-- LoRA weight file size: **~3 MB** vs. ~2 GB for the full model
+- LoRA weight file size: **~24 MB** vs. ~2 GB for the full model
 
 ### 9.3 Training Setup
 
-| Hyperparameter | Value |
-|---|---|
-| Base model | `Lykon/dreamshaper-8` (SD-1.5 fine-tune) |
-| Inpainting model | `Lykon/dreamshaper-8-inpainting` |
-| LoRA rank r | 4 |
-| LoRA alpha α | 16.0 |
-| Training steps | 80 |
-| Batch size | 1 |
-| Learning rate | 1×10⁻⁴ |
-| LR schedule | Cosine annealing |
-| Optimiser | AdamW |
-| LoRA dropout | 0.05 |
-| Gradient clipping | 1.0 |
-| Image size | 512×512 |
-| Device | Apple MPS (M-series) |
+| Hyperparameter | Value | Notes |
+|---|---|---|
+| Training model | `Lykon/dreamshaper-8-inpainting` | Trained directly on inpainting UNet (not base model) |
+| Inpainting model | `Lykon/dreamshaper-8-inpainting` | Same model — ensures state-dict compatibility |
+| LoRA rank r | **8** | Was 4; higher rank captures more style nuance |
+| LoRA alpha α | **32.0** | Was 16; = 4×r per standard scaling practice |
+| Training steps | **500** | Was 80; ~6× more exposure to Hampi imagery |
+| Batch size | 1 | |
+| Learning rate | 1×10⁻⁴ | |
+| LR schedule | Cosine annealing | |
+| Optimiser | AdamW | |
+| LoRA dropout | 0.05 | |
+| Gradient clipping | 1.0 | |
+| Image size | 512×512 | |
+| Device | Apple MPS (M-series) | |
 
-**Memory architecture:** VAE and text encoder run on CPU (frozen, no-grad), freeing MPS memory exclusively for the UNet forward-backward pass. This prevents MPS memory fragmentation and allows training on 16GB unified memory.
+**Why train on the inpainting model directly:** The previous design trained the LoRA on the 4-channel base UNet (`dreamshaper-8`) and transferred weights to the 9-channel inpainting UNet. This caused a state-dict mismatch — the inpainting UNet has additional LoRA-injectable layers that were not present during training, producing `-430/256` loaded tensors (a negative number indicating more expected keys than saved). By training on the inpainting model from the start, the saved LoRA state dict is architecturally identical to the inference model.
+
+**Memory architecture:** VAE and text encoder run on CPU (frozen, no-grad), freeing MPS memory exclusively for the UNet forward-backward pass. During training, a fully-masked latent (mask = ones, masked_latent = zeros) is concatenated to the noisy latent to form the 9-channel inpainting input — teaching the model the reconstruction task without requiring paired damage/complete supervision.
 
 **Gradient checkpointing:** enabled on the UNet — recomputes activations during backprop rather than caching them, trading 30% compute overhead for 40% peak memory reduction.
 
-### 9.4 LoRA Transfer to Inpainting Model
+### 9.4 Contour-Aware Damage Mask
 
-The LoRA is trained on the **base** DreamShaper-8 model (4-channel UNet conv_in). At inference, the LoRA attention-layer weights are transferred to the **inpainting** DreamShaper-8 model (9-channel conv_in for masked-image conditioning).
-
-Both models share **identical cross-attention projection layers** (to_k, to_q, to_v, to_out.0). LoRA does not touch the conv_in layer. The transfer is therefore exact with zero architecture mismatch:
+The original pipeline used a flat horizontal mask determined by Laplacian variance row-scanning. This over-inpainted intact regions (e.g. sky-only patches above an already-complete cornice) and under-inpainted asymmetrically damaged zones. The replacement uses per-column sky boundary detection:
 
 ```python
-# Save: extract only LoRA delta tensors
-lora_state = {k: v for k, v in unet.state_dict().items() if "lora_" in k}
-torch.save(lora_state, "outputs/lora_weights/hampi_lora.pt")
+def _make_damage_mask(img_bgr):
+    hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
+    # Detect blue sky and overcast/white sky separately
+    sky = cv2.bitwise_or(
+        cv2.inRange(hsv, [85, 20, 80],  [135, 255, 255]),  # blue
+        cv2.inRange(hsv, [0,  0,  180], [180,  35, 255]),  # overcast
+    )
+    sky = cv2.dilate(sky, np.ones((7,7)), iterations=2)
 
-# Load: inject into inpainting UNet (strict=False allows conv_in mismatch)
-inpaint_unet = get_peft_model(inpaint_pipe.unet, lora_config)
-inpaint_unet.load_state_dict(lora_state, strict=False)
+    # Per-column: count contiguous sky rows from the top
+    col_top = [first_non_sky_row(sky[:, col]) for col in range(w)]
+
+    # Smooth (moving average width=61) and clamp to 5–65% of image height
+    col_top = np.convolve(col_top, np.ones(61)/61, mode='same').clip(h*0.05, h*0.65)
+
+    # Build per-pixel mask and Gaussian-blur the edge
+    mask = np.zeros((h, w), uint8)
+    for col in range(w):
+        mask[:col_top[col], col] = 255
+    return int(np.median(col_top)), GaussianBlur(mask, 51)
 ```
 
-### 9.5 Inference
+**Effect:** For a mostly-intact temple, the sky boundary may be very high (small mask); for a truncated gopuram where tiers are missing, the sky intrudes further down through gaps in the structure (larger, correctly shaped mask).
 
-With the LoRA loaded, the DreamShaper-8-inpainting model generates the tower completion:
+### 9.5 ControlNet-Canny Structural Conditioning
+
+Without geometric guidance, the inpainting model hallucinates tiers that don't match the surviving structure's pillar alignment, arch width, or cornice height. ControlNet-Canny provides this guidance:
+
+```python
+from diffusers import ControlNetModel, StableDiffusionControlNetInpaintPipeline
+
+controlnet = ControlNetModel.from_pretrained("lllyasviel/control_v11p_sd15_canny")
+pipe = StableDiffusionControlNetInpaintPipeline.from_pretrained(
+    INPAINT_MODEL, controlnet=controlnet
+)
+
+# Canny on original image; zero out edges inside the mask
+# so the model is unconstrained in the generation region
+# but anchored by preserved structure edges below
+canny = cv2.Canny(gray_orig, 80, 200)
+canny[mask > 127] = 0
+control_image = Image.fromarray(np.stack([canny]*3, axis=-1))
+
+result = pipe(
+    ...,
+    control_image=control_image,
+    controlnet_conditioning_scale=0.6,
+)
+```
+
+**Conditioning scale 0.6:** Strong enough to anchor geometric continuity (pillar spacing, wall thickness) but not so strong that it forces the model to exactly reproduce the damaged structure's partial edges in the generated region.
+
+**Zero-masking inside the inpaint region:** The Canny edges inside the mask come from the original damaged image (mostly sky or partial rubble). Zeroing them out removes spurious structural guidance in the generation zone, while preserving the full edge map below the mask boundary — the most valuable source of geometric constraint.
+
+### 9.6 Pipeline Reuse Across Images
+
+The inpainting pipeline (1.5–2 GB loaded model) is now built **once** and passed to each per-image inference call, rather than reloading per image. This eliminates 6 redundant model loads and ~30% of total wall-clock time for batch processing.
+
+```python
+pipe = _build_inpaint_pipe()  # load once
+for img_path in all_images:
+    phase3_lora_inpaint(img_path, pipe)  # reuse
+```
+
+### 9.7 LAB Colour Matching
+
+After compositing, the feathered blend seam is further corrected by transferring the preserved base region's colour statistics to the generated region in LAB colourspace:
+
+```python
+def _color_match(generated_bgr, reference_bgr, mask_hw):
+    gen_lab = bgr2lab(generated_bgr)
+    ref_lab = bgr2lab(reference_bgr)
+    ref_pixels = ref_lab[mask_hw < 128]   # unmasked = ground truth palette
+    gen_region = mask_hw > 127            # generated region to correct
+    for c in range(3):                    # L, A, B channels
+        # Standardise generated region → rescale to reference statistics
+        gen_lab[gen_region, c] = (
+            (gen_lab[gen_region, c] - gen_mean[c]) / gen_std[c]
+        ) * ref_std[c] + ref_mean[c]
+    return lab2bgr(clip(gen_lab))
+```
+
+This corrects the primary visible defect in the previous results: the generated top had a noticeably different colour temperature (cooler/bluer) compared to the warm sandstone of the intact base.
+
+### 9.8 Inference Configuration
 
 ```
-num_inference_steps = 40
-guidance_scale = 8.5
-strength = 0.95
-seed = 42
+num_inference_steps        = 50   (was 40)
+guidance_scale             = 9.0  (was 8.5)
+controlnet_conditioning_scale = 0.6
+strength                   = 0.95
+seed                       = 42
 ```
-
-The result is composited with the original intact base using the same cosine-feathered blending as the SDXL baseline.
 
 ---
 
@@ -381,8 +453,10 @@ The result is composited with the original intact base using the same cosine-fea
 | SfM | Sparse 3D points | 1,283 |
 | Dense | Dense point cloud | 33,261 points |
 | Inpainting | Structural SSIM vs original | 0.4006 |
-| LoRA | Trainable parameters | 797,184 (0.09%) |
-| LoRA | Weight file size | ~3 MB |
+| LoRA | Trainable parameters (rank 8) | ~12M (~1.4% of attention params) |
+| LoRA | Weight file size | ~24 MB |
+| LoRA | Training steps | 500 |
+| LoRA | Images processed (batch) | 7 |
 | Compute cost | All stages | $0 (free APIs + local) |
 
 ---
@@ -484,12 +558,15 @@ python lora_pipeline.py
 # Streamlit web app
 streamlit run app.py
 
-# Optional: target a different image
+# Optional: target a single image (default = all 7 raw images)
 IMG_PATH=data/raw/7f9fc5ee81.jpg python lora_pipeline.py
 
-# Optional: force retrain LoRA
+# Optional: force retrain LoRA (required after changing rank/steps)
 FORCE_RETRAIN=1 python lora_pipeline.py
 
-# Optional: more training steps
-TRAIN_STEPS=200 python lora_pipeline.py
+# Optional: disable ControlNet for faster (lower quality) inference
+USE_CONTROLNET=0 python lora_pipeline.py
+
+# Optional: override training steps
+TRAIN_STEPS=800 python lora_pipeline.py
 ```
