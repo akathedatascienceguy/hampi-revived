@@ -350,52 +350,45 @@ def raw_name_map():
 # Sidebar
 # ═══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
+    # Authors — prominently at the top
     st.markdown("""
-<div style="font-family:'Cinzel',serif;font-size:1.1rem;color:#e8c060;
-letter-spacing:3px;text-align:center;padding:0.5rem 0 1rem">
-🏛️ HAMPI REVIVED
+<div style="
+  background: linear-gradient(135deg,#1e1208,#2a1a0a);
+  border: 1px solid #5a3515;
+  border-radius: 8px;
+  padding: 0.9rem 1rem 0.8rem;
+  margin-bottom: 1rem;
+  text-align: center;
+">
+  <div style="font-family:'Cinzel',serif;font-size:1.05rem;color:#e8c060;
+              letter-spacing:2px;margin-bottom:0.5rem">🏛️ HAMPI REVIVED</div>
+  <div style="color:#d4a050;font-weight:600;font-size:0.88rem;line-height:1.6">
+    Yashvardhan Gupta<br>Nikita Gupta
+  </div>
+  <div style="color:#6a4828;font-size:0.72rem;margin-top:0.3rem;letter-spacing:1px">2026</div>
 </div>
 """, unsafe_allow_html=True)
-    st.markdown("---")
-    st.markdown("""
-<p style="color:#807060;font-size:0.82rem;line-height:1.7">
-<b style="color:#c09050">Vijayanagara Empire</b><br>
-1336 – 1646 CE<br><br>
-Digital resurrection of one of history's greatest architectural legacies —
-using computer vision, 3D reconstruction, and generative AI to restore
-monuments abandoned for four centuries.
-</p>
-""", unsafe_allow_html=True)
+
     st.markdown("---")
 
-    st.markdown('<div style="font-family:Cinzel,serif;color:#a07040;font-size:0.78rem;letter-spacing:2px;margin-bottom:0.5rem">PIPELINE</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-family:Cinzel,serif;color:#7a5030;font-size:0.7rem;letter-spacing:2px;margin-bottom:0.4rem">PIPELINE</div>', unsafe_allow_html=True)
     stages = [
-        ("📥", "Data Ingestion",       "Wikimedia + synthetic"),
-        ("🔬", "Preprocessing",        "CLAHE · denoise · sharpen"),
-        ("🔍", "Feature Extraction",   "SIFT + FLANN"),
-        ("📐", "Structure from Motion","Essential matrix, RANSAC"),
-        ("☁️", "Dense Reconstruction", "SGBM stereo depth"),
-        ("🗿", "Mesh Generation",      "Poisson surface"),
-        ("🎨", "Visualization",        "matplotlib + plotly"),
-        ("🤖", "SDXL Inpainting",      "Baseline restoration"),
-        ("🧬", "LoRA + ControlNet",    "Site-specific fine-tuning"),
+        ("📥", "Data Ingestion"),
+        ("🔬", "Preprocessing"),
+        ("🔍", "Feature Extraction"),
+        ("📐", "Structure from Motion"),
+        ("☁️", "Dense Reconstruction"),
+        ("🗿", "Mesh Generation"),
+        ("🎨", "Visualization"),
+        ("🤖", "SDXL Inpainting"),
+        ("🧬", "LoRA + ControlNet"),
     ]
-    for icon, name, desc in stages:
+    for icon, name in stages:
         st.markdown(
-            f'<div style="margin:0.35rem 0">'
-            f'<span style="color:#c07840">{icon}</span> '
-            f'<span style="color:#c09060;font-size:0.82rem">{name}</span><br>'
-            f'<span style="color:#504030;font-size:0.74rem;padding-left:1.2rem">{desc}</span>'
-            f'</div>',
+            f'<div style="color:#806040;font-size:0.8rem;padding:0.15rem 0">'
+            f'{icon} {name}</div>',
             unsafe_allow_html=True
         )
-
-    st.markdown("---")
-    st.markdown("""
-<div style="color:#403020;font-size:0.74rem;text-align:center">
-Yashvardhan Gupta · Nikita Gupta<br>2026
-</div>
-""", unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
