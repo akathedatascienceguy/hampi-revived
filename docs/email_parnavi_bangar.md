@@ -20,27 +20,45 @@ The project started as a technical exercise. It has become something we care abo
 
 ---
 
+**You can see it live here:**
+**[https://hampi-revived.streamlit.app](https://hampi-revived.streamlit.app)**
+
+The app walks through the full pipeline — raw photographs, 3D point cloud, and the AI-generated restorations — and includes a section on the history of the Vijayanagara Empire and the architectural vocabulary of Hampi. We would be glad if you took five minutes to look at it.
+
+---
+
 **What it does**
 
 The pipeline runs in two tracks.
 
 The first takes a set of overlapping photographs of a monument and reconstructs it as a navigable 3D point cloud and surface mesh — a kind of digital excavation without a trowel. The second, and more ambitious, track uses generative AI to complete what is missing. The model detects where a structure is ruined, masks that region, and uses the surviving stonework as context to fill in what is gone — the intact arch, the carved walls, the existing tiers all inform what gets generated. The lower portion of the image stays pixel-perfect original photography. Only the missing section is predicted.
 
-We have run this on a partially destroyed entrance gopuram at Hampi. The model predicted a complete tiered shikhara tower rising above the original carved doorway, blended at the damage boundary. It is imperfect. But it holds up as a proof of concept — and it points clearly at what comes next.
+We have run this on partially destroyed gopurams at Hampi — the entrance gateway to the Vijayanagara complex at Hazara Rama, the truncated north gopuram, and several others. The model predicts a complete tiered shikhara tower rising above the original carved doorway, blended at the damage boundary.
+
+---
+
+**Where we are technically**
+
+The pipeline has gone through several iterations. The current version:
+
+- Trains a **rank-8 LoRA** (low-rank adaptation) on 70+ Hampi and South Indian temple photographs over 600 steps — teaching the model the specific visual vocabulary of Vijayanagara architecture rather than a generic approximation
+- Uses a **sky-contour damage mask** that follows the actual silhouette of each structure rather than cutting at a flat horizontal line
+- Applies **ControlNet-Canny** conditioning so that the generated upper tiers are geometrically anchored to the surviving lower structure — pillar alignment, arch width, and stone rhythm are preserved
+- Conditions generation on a **reference photograph of an intact gopuram** (Virupaksha Temple, same complex) via IP-Adapter, so the proportions of the generated shikhara draw from a real complete example on the same site
+- Uses **synthetic damage pairs** during training: intact gopuram images are programmatically masked and the model is trained to reconstruct the masked-out upper portion from the intact lower context — directly teaching the restoration task rather than just architectural style
+- Applies **LAB colour matching** after compositing to ensure the generated region's colour temperature matches the original stonework
+
+The results are meaningfully better than the baseline. The stone colour, carving density, and tower profile are recognisably Hampi rather than generically Dravidian.
+
+The remaining hard ceiling is data: photographs cannot convey iconographic intent, period attribution within the Vijayanagara chronology, or which structural elements are original versus later repair. That knowledge lives in fieldwork.
 
 ---
 
 **Where we are taking it — and why we are writing to you**
 
-We are now fine-tuning the AI model specifically on Hampi. We have collated 50–100 photographs of Vijayanagara monuments from public archives and are training a LoRA — a technique that teaches the model the particular visual vocabulary of this site rather than a generic approximation of Indian temple architecture.
-
-The difference is substantial. A model trained on Hampi learns the oxidised sandstone palette, the specific tier proportions of entrance gopurams in this complex, the density and rhythm of the carved friezes. Completions stop looking like plausible Dravidian architecture and start looking like *this place*.
-
-But there is a hard ceiling to what photographs alone can teach.
-
-Photographs cannot tell the model which structural elements are original versus later repair. They cannot convey the iconographic intent of a specific carved frieze, the period within the Vijayanagara chronology a structure belongs to, or which ruins are most archaeologically urgent. That knowledge lives in fieldwork and excavation records — in the kind of deep site familiarity that takes years to accumulate and cannot be scraped from the internet.
-
 We believe you have that knowledge. And we think it is precisely what this pipeline needs to become genuinely useful rather than merely technically interesting.
+
+The difference between a model that has seen photographs and one that has been annotated by someone who has worked the Hampi site is the difference between plausible and accurate. We want to build toward the latter.
 
 ---
 
@@ -54,7 +72,9 @@ A collaboration, on whatever terms work for you. Concretely, we have three thing
 
 In return: full co-authorship on any resulting paper or exhibition, interactive 3D models of any monuments you specify, and the complete fine-tuned model and codebase — available to you under whatever terms you prefer.
 
-We would be glad to share our current outputs and walk you through the pipeline at any time that suits you. Even a single conversation would move this meaningfully forward.
+We would be glad to share our current outputs and walk you through the pipeline at any time that suits you. The live app at **[hampi-revived.streamlit.app](https://hampi-revived.streamlit.app)** gives a quick overview; a call would let us go deeper into the methodology and show you the per-monument restoration results.
+
+Even a single conversation would move this meaningfully forward.
 
 Thank you for your time and for your work on Hampi. The ruins deserve to be seen whole.
 
@@ -68,7 +88,9 @@ Founding Member in Data Science, super.money
 
 ---
 
-*Project repository: github.com/akathedatascienceguy/hampi-revived*
+*Live app: [https://hampi-revived.streamlit.app](https://hampi-revived.streamlit.app)*
+*Repository: [github.com/akathedatascienceguy/hampi-revived](https://github.com/akathedatascienceguy/hampi-revived)*
 
 ---
+
 > *"The ruins are not the absence of the empire — they are its most durable signature."*
