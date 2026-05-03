@@ -9,16 +9,42 @@ dist/
 build/
 .eggs/
 
-# Data (too large for git)
+# All image files (too large / generated)
+*.jpg
+*.jpeg
+*.JPG
+*.JPEG
+*.png
+*.PNG
+*.webp
+*.bmp
+*.tiff
+*.tif
+*.gif
+
+# Data directories
 data/raw/
 data/processed/
+data/reference/
+data/lora_train/
+data/lora_dataset/
 !data/.gitkeep
 
-# Large outputs
-outputs/point_clouds/
-outputs/meshes/
-outputs/visualizations/
+# All outputs (reconstructions, weights, plots)
+outputs/
 !outputs/.gitkeep
+
+# 3D files
+*.ply
+*.obj
+*.glb
+*.gltf
+
+# Large model weights
+*.pt
+*.pth
+*.bin
+*.safetensors
 
 # Jupyter
 .ipynb_checkpoints/

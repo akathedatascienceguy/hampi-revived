@@ -12,7 +12,9 @@ Dear Parnavi,
 
 We hope this finds you well.
 
-We are reaching out from super.money — Nikita as Head of Data Science, and Yash as a Founding Member — though this note is not about fintech. It is about Hampi.
+We are reaching out from super.money — Nikita as Head of Data Science, and Yash as a Founding Member — though this note is not about fintech. It is about Hampi, and about *Reminiscing History*.
+
+We came across your publication recently and read it with genuine admiration. The way it brings historical sites and their stories to a general audience — without sacrificing depth — is exactly the register we have been trying to reach with the project we are about to describe. We believe there may be a natural overlap, and we will come to that at the end of this note.
 
 Over the past several weeks, we have been building **Hampi Revived** — a computational pipeline that takes photographs of the Hampi World Heritage Site and attempts to do two things: reconstruct the surviving structures in 3D from multi-view photography, and use generative AI to predict what the damaged or partially destroyed monuments looked like when they were intact.
 
@@ -62,6 +64,14 @@ The difference between a model that has seen photographs and one that has been a
 
 ---
 
+**A thought about *Reminiscing History***
+
+When we read your publication, one thing struck us: the most affecting pieces are those where the reader can *see* what once existed alongside what remains. Our reconstructions — imperfect as they currently are — do exactly that. A photograph of a ruined gopuram beside its computationally completed version communicates the scale of what was lost in a way that prose alone cannot.
+
+We think these reconstructions could find a natural home in a future edition of *Reminiscing History* — particularly a piece on Hampi, or on computational approaches to heritage documentation more broadly. If that is of interest, we would be glad to produce publication-quality renders of any monument you choose, at whatever resolution the layout requires, with full attribution and editorial control on your side.
+
+---
+
 **What we are proposing**
 
 A collaboration, on whatever terms work for you. Concretely, we have three things in mind:
@@ -70,7 +80,7 @@ A collaboration, on whatever terms work for you. Concretely, we have three thing
 2. **Iconographic review** — your assessment of whether the AI-generated completions are plausible or wrong, so we can correct what the model has learned about what Vijayanagara structures actually looked like
 3. **Priority monuments** — a short list of structures most in need of digital documentation, so our effort goes where it matters most
 
-In return: full co-authorship on any resulting paper or exhibition, interactive 3D models of any monuments you specify, and the complete fine-tuned model and codebase — available to you under whatever terms you prefer.
+In return: full co-authorship on any resulting paper or exhibition, interactive 3D models of any monuments you specify, publication-quality digital reconstructions for use in *Reminiscing History* or any other platform you see fit, and the complete fine-tuned model and codebase — available to you under whatever terms you prefer.
 
 We would be glad to share our current outputs and walk you through the pipeline at any time that suits you. The live app at **[hampi-revived.streamlit.app](https://hampi-revived.streamlit.app)** gives a quick overview; a call would let us go deeper into the methodology and show you the per-monument restoration results.
 
