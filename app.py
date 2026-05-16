@@ -334,13 +334,78 @@ def sec(title: str, sub: str = ""):
 def raw_name_map():
     """Map raw image stems to readable monument names."""
     return {
+        # Original lora-output images (restored from git)
         "083447a317": "Vittala Temple Complex",
-        "38580ab157": "Stepped Tank / Pushkarini",
         "59b2b09ec5": "Vijayanagara Gateway Arch",
         "5fd2b1c725": "Matanga Hill Panorama",
         "7f9fc5ee81": "Gopuram — North Entrance",
-        "c10d00957e": "Pillared Mandapa",
         "fc23907c75": "Hazara Rama Gopuram",
+        # Vittala Temple
+        "f365811fad": "Vittala Temple — Gopuram Ruin",
+        "1da975b3cf": "Vittala Temple — Mandapa",
+        "281dd12a62": "Vittala Temple — Pillars",
+        "9b75b96cda": "Vittala Temple — Stone Chariot Court",
+        "e04f30d824": "Vittala Temple — Colonnade",
+        "b18ce2447b": "Vittala Temple — Inner Sanctum",
+        "40f0deac10": "Vittala Temple — Entrance Gateway",
+        "11251ecc0a": "Vittala Temple — Ruined Tower",
+        "f26ab4b82d": "Vittala Temple — Carved Pillars",
+        "3fe0b0dc8c": "Vittala Temple — Musical Pillars",
+        "ea6e96c943": "Vittala Temple — Mandapa Interior",
+        "57c7f2a1fc": "Vittala Temple — Stone Chariot",
+        "5c0a140d0d": "Vittala Temple — Chariot Detail",
+        "d49a0299c6": "Vittala Temple — Chariot & Gopuram",
+        "c3d838b0c7": "Vittala Temple — Chariot Wheel",
+        # Hazara Rama Temple
+        "ae915d2bd7": "Hazara Rama — Gateway",
+        "f626a81248": "Hazara Rama — Ramayana Frieze",
+        "69f9c70bc3": "Hazara Rama — Outer Wall Relief",
+        "8c8047a234": "Hazara Rama — Carved Panels",
+        "c2b54cf974": "Hazara Rama — Temple Complex",
+        "8a6a67e5dc": "Hazara Rama — Gopuram",
+        "f8ee2758ca": "Hazara Rama — Mandapa",
+        "8a63b85f69": "Hazara Rama — Entrance",
+        # Hemakuta Hill
+        "2ea3198306": "Hemakuta Hill — Group of Shrines",
+        "a7c5bdcb17": "Hemakuta Hill — Ruined Temples",
+        "140517baca": "Hemakuta Hill — Sunset Panorama",
+        "bcb113ab23": "Hemakuta Hill — Damaged Shikhara",
+        "251c2f908e": "Hemakuta Hill — View over Plains",
+        # Achyutaraya Temple
+        "452046f132": "Achyutaraya Temple — Ruined Gopuram",
+        "50aaa6cf64": "Achyutaraya Temple — Colonnade",
+        "275b804078": "Achyutaraya Temple — Broken Tower",
+        "2591bfed23": "Achyutaraya Temple — Mandapa",
+        "67e09a0144": "Achyutaraya Temple — Gateway",
+        "be51c7ba5c": "Achyutaraya Temple — Carved Column",
+        "37b91871f5": "Achyutaraya Temple — Complex",
+        "b2246cd781": "Achyutaraya Temple — Boulder Hill",
+        "0983c87b16": "Achyutaraya Temple — Pillar Detail",
+        # Virupaksha Temple / Gopurams
+        "39e37f2bae": "Virupaksha — Gopuram",
+        "32c23dcd2c": "Virupaksha — Main Tower",
+        "dbbd44b476": "Virupaksha — North Gopuram",
+        "4c152cef28": "Virupaksha — Ruined Shrine",
+        "66fa9049dc": "Virupaksha — Main Gopuram",
+        "2f450367fc": "Virupaksha — Tower Angle",
+        # Gopuram ruins / entrances
+        "f9d8301d61": "Hampi — Ruined Gopuram Entrance",
+        "cdbf98c673": "Hampi — Damaged Gopuram Tower",
+        "7c92a10f80": "Hampi — Vittala Complex c.1910",
+        "144163d122": "Hampi — Broken Gopuram",
+        "a17274a8c0": "Hampi — Gopuram Side View",
+        "1e1279c218": "Hampi — Gopuram Detail",
+        # ASI / historical photographs
+        "74251a5bbf": "ASI Survey — Temple Photograph",
+        "326dbe9859": "ASI Survey — Mandapa Interior",
+        "0b68addc23": "ASI Survey — Temple Detail",
+        # Ruined mandapas
+        "a3a8372ac4": "Hampi — Ruined Mandapa",
+        "d2cc79a234": "Hampi — Columned Hall Ruin",
+        "0e07867494": "Hampi — Broken Mandapa Tower",
+        "31e3658889": "Hampi — Mandapa Ruin",
+        # Riverside / general
+        "2e5209b992": "Hampi — Tungabhadra Riverside Ruins",
     }
 
 
@@ -676,7 +741,7 @@ at the seam between intact and generated regions.
 # ─── TAB 3: Raw Images ────────────────────────────────────────────────────────
 with tabs[2]:
     sec("RAW HAMPI PHOTOGRAPHS",
-        f"{len(raw_imgs)} photographs of Hampi monuments · Gopurams, mandapas, carved friezes")
+        f"{len(raw_imgs)} photographs — Gopurams · Mandapas · Carved friezes · ASI archive · Ruined monuments")
 
     name_map = raw_name_map()
     if raw_imgs:

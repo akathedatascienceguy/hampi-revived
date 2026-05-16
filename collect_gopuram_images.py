@@ -1,44 +1,96 @@
 """
-collect_gopuram_images.py — Download intact South Indian gopuram images.
+collect_gopuram_images.py — Strict Hampi-only image collection.
 
-Downloads two batches via the Wikimedia MediaWiki API (no browser needed):
+Sources:
+  1. Wikimedia Commons categories scoped to Hampi monuments
+  2. Historical/colonial-era archive searches (Survey of India, ASI)
+  3. Specific broken-monument searches all anchored to "Hampi"
 
-  data/raw/        ← everything (Hampi + other temples) used for LoRA training
-  data/reference/  ← intact-gopuram-only shots used as IP-Adapter reference
+Auto-rejects:
+  - Images where mean HSV saturation > 60  (colourful Tamil stucco temples)
+  - Extreme aspect ratios  (panorama strips, portrait banners)
+  - Images < 300px on shortest side or < 80 KB
 
 Run:
     source venv/bin/activate
     python collect_gopuram_images.py
 """
 
-import hashlib, time, sys
+import hashlib, time, io
 import requests
+import numpy as np
 from pathlib import Path
 from PIL import Image
-import io
 
-ROOT         = Path(__file__).parent
-RAW_DIR      = ROOT / "data" / "raw"
-REF_DIR      = ROOT / "data" / "reference"
-API          = "https://commons.wikimedia.org/w/api.php"
-HEADERS      = {"User-Agent": "HampiRevived/2.0 (research project; contact yvg1799@gmail.com)"}
-MIN_BYTES    = 80_000   # skip thumbnails
-MAX_DIM      = 2000     # cap download size to avoid huge files
+ROOT     = Path(__file__).parent
+RAW_DIR  = ROOT / "data" / "raw"
+REF_DIR  = ROOT / "data" / "reference"
+API      = "https://commons.wikimedia.org/w/api.php"
+HEADERS  = {"User-Agent": "HampiRevived/2.0 (research; yvg1799@gmail.com)"}
+
+MIN_BYTES     = 80_000
+MAX_DIM       = 2000
+MAX_SAT       = 60     # reject colourful stucco (Meenakshi etc.)
+MIN_AR, MAX_AR = 0.30, 3.0   # reject extreme panoramas / banners
 
 RAW_DIR.mkdir(parents=True, exist_ok=True)
 REF_DIR.mkdir(parents=True, exist_ok=True)
 
 
+# ─── Quality gate ──────────────────────────────────────────────────────────────
+
+def is_hampi_style(data: bytes) -> bool:
+    """
+    Reject if mean HSV saturation is too high (colourful Tamil stucco)
+    or aspect ratio is out of range.
+    """
+    try:
+        img = Image.open(io.BytesIO(data)).convert("RGB")
+        w, h = img.size
+        ar = w / h
+        if ar > MAX_AR or ar < MIN_AR:
+            return False
+        # Saturation check
+        arr = np.array(img.resize((64, 64))).astype(np.float32) / 255.0
+        r, g, b = arr[..., 0], arr[..., 1], arr[..., 2]
+        cmax = np.maximum(np.maximum(r, g), b)
+        cmin = np.minimum(np.minimum(r, g), b)
+        sat = np.where(cmax > 0, (cmax - cmin) / cmax, 0)
+        mean_sat = sat.mean() * 100
+        if mean_sat > MAX_SAT:
+            return False
+        return True
+    except Exception:
+        return False
+
+
 # ─── Wikimedia helpers ─────────────────────────────────────────────────────────
 
+def category_files(category: str, limit: int = 30) -> list[str]:
+    cat = "Category:" + category.replace(" ", "_")
+    params = {
+        "action": "query", "list": "categorymembers",
+        "cmtitle": cat, "cmtype": "file",
+        "cmlimit": limit * 3, "format": "json",
+    }
+    try:
+        r = requests.get(API, params=params, headers=HEADERS, timeout=20)
+        r.raise_for_status()
+        titles = [m["title"] for m in r.json().get("query", {}).get("categorymembers", [])
+                  if m.get("title", "").lower().endswith((".jpg", ".jpeg", ".png"))]
+        return titles[:limit]
+    except Exception as e:
+        print(f"    category error: {e}")
+        return []
+
+
 def search_files(query: str, limit: int = 20) -> list[str]:
-    """Wikimedia full-text file search — more robust than category membership."""
     params = {
         "action": "query",
         "generator": "search",
         "gsrsearch": f"filetype:bitmap {query}",
         "gsrnamespace": 6,
-        "gsrlimit": min(limit * 3, 50),
+        "gsrlimit": min(limit * 4, 50),
         "prop": "imageinfo",
         "iiprop": "url|size",
         "iiurlwidth": MAX_DIM,
@@ -53,38 +105,15 @@ def search_files(query: str, limit: int = 20) -> list[str]:
         ]
         return titles[:limit]
     except Exception as e:
-        print(f"    search error ({query}): {e}")
+        print(f"    search error: {e}")
         return []
 
 
-def category_files(category: str, limit: int = 25) -> list[str]:
-    """Return File: titles from a Commons category, falling back to keyword search."""
-    cat = category.replace(" ", "_")
-    params = {
-        "action": "query", "list": "categorymembers",
-        "cmtitle": cat, "cmtype": "file",
-        "cmlimit": limit * 2, "format": "json",
-    }
-    try:
-        r = requests.get(API, params=params, headers=HEADERS, timeout=20)
-        r.raise_for_status()
-        titles = [m["title"] for m in r.json().get("query", {}).get("categorymembers", [])
-                  if m.get("title", "").lower().endswith((".jpg", ".jpeg", ".png"))]
-        if titles:
-            return titles[:limit]
-    except Exception as e:
-        print(f"    category error: {e}")
-    # Fallback: search by keyword
-    keyword = cat.split("Category:")[-1].replace("_", " ").replace(",", "")
-    return search_files(keyword, limit)
-
-
-def image_url(title: str, max_width: int = MAX_DIM) -> str | None:
-    """Get the thumb URL for a Wikimedia file title."""
+def image_url(title: str) -> str | None:
     params = {
         "action": "query", "titles": title,
         "prop": "imageinfo", "iiprop": "url|size",
-        "iiurlwidth": max_width, "format": "json",
+        "iiurlwidth": MAX_DIM, "format": "json",
     }
     try:
         r = requests.get(API, params=params, headers=HEADERS, timeout=20)
@@ -95,12 +124,16 @@ def image_url(title: str, max_width: int = MAX_DIM) -> str | None:
             if w > 300 and h > 300:
                 return ii.get("thumburl") or ii.get("url")
     except Exception as e:
-        print(f"    URL fetch error: {e}")
+        print(f"    URL error: {e}")
     return None
 
 
+def stem_for(title: str) -> str:
+    name = title.split("File:")[-1]
+    return hashlib.md5(name.encode()).hexdigest()[:10]
+
+
 def download_image(url: str, dest: Path) -> bool:
-    """Download to dest; skip if already cached or too small."""
     if dest.exists() and dest.stat().st_size > MIN_BYTES:
         print(f"    cached  {dest.name}")
         return True
@@ -110,7 +143,8 @@ def download_image(url: str, dest: Path) -> bool:
         data = b"".join(r.iter_content(8192))
         if len(data) < MIN_BYTES:
             return False
-        # Quick PIL sanity check
+        if not is_hampi_style(data):
+            return False
         img = Image.open(io.BytesIO(data)).convert("RGB")
         if min(img.size) < 300:
             return False
@@ -123,16 +157,8 @@ def download_image(url: str, dest: Path) -> bool:
         return False
 
 
-def stem_for(title: str) -> str:
-    name = title.split("File:")[-1]
-    return hashlib.md5(name.encode()).hexdigest()[:10]
-
-
-def fetch_batch(category: str, dest_dir: Path, limit: int = 15,
-                tag: str = "") -> int:
-    """Download up to `limit` images from a category into dest_dir."""
-    print(f"\n  [{tag or category.split(':')[-1][:40]}]")
-    titles = category_files(category, limit=limit * 2)
+def fetch(titles: list[str], dest_dir: Path, limit: int, tag: str) -> int:
+    print(f"\n  [{tag}]")
     count = 0
     for title in titles:
         if count >= limit:
@@ -140,95 +166,94 @@ def fetch_batch(category: str, dest_dir: Path, limit: int = 15,
         url = image_url(title)
         if not url:
             continue
-        ext = ".jpg" if ".jpg" in url.lower() or ".jpeg" in url.lower() else ".png"
+        ext = ".jpg" if any(x in url.lower() for x in (".jpg", ".jpeg")) else ".png"
         dest = dest_dir / (stem_for(title) + ext)
         if download_image(url, dest):
             count += 1
         time.sleep(0.3)
-    print(f"  → {count} images saved to {dest_dir.name}/")
+    print(f"  → {count} saved")
     return count
 
 
-# ─── Search terms ──────────────────────────────────────────────────────────────
-# Use keyword search (more reliable than category membership for these temples).
+# ─── Strict Hampi-only sources ─────────────────────────────────────────────────
+#
+# All searches include the word "Hampi" or use a known Hampi Commons category.
+# No generic South Indian temple searches — those contaminate with Tamil Nadu.
 
-TRAINING_SEARCHES = [
-    # More Hampi
-    ("Virupaksha temple Hampi gopuram",          RAW_DIR,  8, "Hampi — Virupaksha"),
-    ("Vittala temple Hampi stone chariot",        RAW_DIR,  6, "Hampi — Vittala"),
-    ("Hazara Rama temple Hampi",                  RAW_DIR,  5, "Hampi — Hazara Rama"),
-    ("Hemakuta hill temple Hampi",                RAW_DIR,  4, "Hampi — Hemakuta"),
-    ("Hampi ruins gopuram Karnataka",             RAW_DIR,  5, "Hampi — ruins"),
-    # Intact South Indian gopurams — teach the model complete-tower proportions
-    ("Brihadeeswara temple Thanjavur tower",      RAW_DIR,  7, "Thanjavur Brihadeeswarar"),
-    ("Meenakshi temple Madurai gopuram",          RAW_DIR,  7, "Madurai Meenakshi"),
-    ("Ranganathaswamy temple Srirangam gopuram",  RAW_DIR,  5, "Srirangam Ranganatha"),
-    ("Nataraja temple Chidambaram gopuram",       RAW_DIR,  4, "Chidambaram Nataraja"),
-    ("Murudeshwara temple gopuram Karnataka",     RAW_DIR,  4, "Murudeshwara"),
-    ("Hoysala temple Karnataka stone carved",     RAW_DIR,  4, "Hoysala stone temples"),
+CATEGORY_FETCHES = [
+    # Wikimedia Commons categories scoped exactly to Hampi structures
+    ("Virupaksha Temple, Hampi",          RAW_DIR, 10, "Cat — Virupaksha Temple"),
+    ("Vittala Temple",                    RAW_DIR,  8, "Cat — Vittala Temple"),
+    ("Hazara Rama Temple",                RAW_DIR,  8, "Cat — Hazara Rama Temple"),
+    ("Hemakuta Hill",                     RAW_DIR,  6, "Cat — Hemakuta Hill"),
+    ("Mahanavami Dibba",                  RAW_DIR,  4, "Cat — Mahanavami Dibba"),
+    ("Lotus Mahal",                       RAW_DIR,  4, "Cat — Lotus Mahal"),
+    ("Elephant Stables, Hampi",           RAW_DIR,  4, "Cat — Elephant Stables"),
+    ("Achyutaraya Temple",                RAW_DIR,  5, "Cat — Achyutaraya Temple"),
+    ("Krishnadeva Raya",                  RAW_DIR,  3, "Cat — Krishna Temple"),
 ]
 
-# Reference images: intact gopurams for IP-Adapter conditioning.
+KEYWORD_SEARCHES = [
+    # Gopuram-specific, always anchored to Hampi
+    ("Hampi gopuram ruins Karnataka",           RAW_DIR,  6, "Hampi — gopuram ruins"),
+    ("Virupaksha Hampi gopuram tower",          RAW_DIR,  6, "Hampi — Virupaksha gopuram"),
+    ("Hazara Rama Hampi gopuram damaged",       RAW_DIR,  5, "Hampi — Hazara Rama gopuram"),
+    ("Hampi north gopuram entrance broken",     RAW_DIR,  5, "Hampi — north gopuram"),
+    ("Vittala temple Hampi ruins columns",      RAW_DIR,  5, "Hampi — Vittala ruins"),
+    ("Achyutaraya temple Hampi ruined",         RAW_DIR,  4, "Hampi — Achyutaraya"),
+    # Historical / archival
+    ("Hampi ruins photograph 1856 Fergusson",   RAW_DIR,  4, "Archive — Fergusson 1856"),
+    ("Hampi Vijayanagara ruins 1900 photograph",RAW_DIR,  5, "Archive — colonial photos"),
+    ("Hampi ruins Survey of India photograph",  RAW_DIR,  4, "Archive — Survey of India"),
+    ("Hampi ruins ASI archaeological photograph",RAW_DIR, 4, "Archive — ASI photos"),
+    ("Hampi Vijayanagara historical engraving", RAW_DIR,  3, "Archive — historical engravings"),
+    # Broken significant monuments — all anchored to Hampi
+    ("Hampi broken pillar mandapa ruins",       RAW_DIR,  4, "Hampi — ruined mandapas"),
+    ("Hampi stone chariot Vittala ruined",      RAW_DIR,  4, "Hampi — stone chariot"),
+    ("Hampi Tungabhadra ruins boulders",        RAW_DIR,  4, "Hampi — riverside ruins"),
+    ("Hampi Vijayanagara carved frieze wall",   RAW_DIR,  4, "Hampi — carved walls"),
+]
+
+# Reference: only Virupaksha intact gopuram (on the same Hampi site)
 REFERENCE_SEARCHES = [
-    ("Virupaksha temple Hampi tower intact",      REF_DIR,  6, "Ref — Virupaksha intact"),
-    ("Brihadeeswara tower Thanjavur stone",       REF_DIR,  5, "Ref — Thanjavur tower"),
-    ("Meenakshi gopuram Madurai intact",          REF_DIR,  4, "Ref — Madurai gopuram"),
-    ("South Indian temple gopuram intact stone",  REF_DIR,  4, "Ref — generic intact"),
+    ("Virupaksha Hampi gopuram intact tower",   REF_DIR,  6, "Ref — Virupaksha intact"),
+    ("Hampi Virupaksha tower complete",         REF_DIR,  4, "Ref — Virupaksha complete"),
 ]
 
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
-def fetch_search(query: str, dest_dir: Path, limit: int = 10, tag: str = "") -> int:
-    """Search Wikimedia and download up to `limit` results into dest_dir."""
-    print(f"\n  [{tag or query[:45]}]")
-    titles = search_files(query, limit * 2)
-    count  = 0
-    for title in titles:
-        if count >= limit:
-            break
-        url = image_url(title)
-        if not url:
-            continue
-        ext  = ".jpg" if any(x in url.lower() for x in (".jpg", ".jpeg")) else ".png"
-        dest = dest_dir / (stem_for(title) + ext)
-        if download_image(url, dest):
-            count += 1
-        time.sleep(0.3)
-    print(f"  → {count} images saved to {dest_dir.name}/")
-    return count
-
-
 def main():
     print("=" * 62)
-    print("Hampi Revived — Gopuram Image Collection")
+    print("Hampi Revived — Strict Hampi-Only Image Collection")
+    print("  Saturation filter: rejects colourful Tamil stucco temples")
+    print("  Aspect filter: rejects panorama strips & banners")
     print("=" * 62)
 
-    existing_raw = len(list(RAW_DIR.glob("*.jpg")) + list(RAW_DIR.glob("*.png")))
-    print(f"\nExisting raw images: {existing_raw}")
+    total = 0
 
-    # ── 1. Training images ─────────────────────────────────────────────────────
-    print("\n── TRAINING IMAGES (data/raw/) ──")
-    raw_total = 0
-    for query, dest, lim, tag in TRAINING_SEARCHES:
-        raw_total += fetch_search(query, dest, lim, tag)
+    print("\n── CATEGORY-BASED (exact Hampi Commons categories) ──")
+    for cat, dest, lim, tag in CATEGORY_FETCHES:
+        titles = category_files(cat, limit=lim * 3)
+        total += fetch(titles, dest, lim, tag)
 
-    # ── 2. Reference images ────────────────────────────────────────────────────
-    print("\n── REFERENCE IMAGES (data/reference/) ──")
-    ref_total = 0
+    print("\n── KEYWORD SEARCHES (all anchored to 'Hampi') ──")
+    for query, dest, lim, tag in KEYWORD_SEARCHES:
+        titles = search_files(query, limit=lim * 3)
+        total += fetch(titles, dest, lim, tag)
+
+    print("\n── REFERENCE IMAGES (Virupaksha intact, same site) ──")
     for query, dest, lim, tag in REFERENCE_SEARCHES:
-        ref_total += fetch_search(query, dest, lim, tag)
+        titles = search_files(query, limit=lim * 3)
+        total += fetch(titles, dest, lim, tag)
 
-    # ── 3. Summary ─────────────────────────────────────────────────────────────
-    total_raw = len(list(RAW_DIR.glob("*.jpg")) + list(RAW_DIR.glob("*.png")))
-    total_ref = len(list(REF_DIR.glob("*.jpg")) + list(REF_DIR.glob("*.png")))
-
+    n_raw = len(list(RAW_DIR.glob("*.jpg")) + list(RAW_DIR.glob("*.png")))
+    n_ref = len(list(REF_DIR.glob("*.jpg")) + list(REF_DIR.glob("*.png")))
     print(f"\n{'='*62}")
-    print(f"Collection complete")
-    print(f"  data/raw/       : {total_raw} images  (+{total_raw - existing_raw} new)")
-    print(f"  data/reference/ : {total_ref} images")
-    print(f"\nNext step:")
-    print(f"  FORCE_RETRAIN=1 python lora_pipeline.py")
+    print(f"Collection complete — {total} new downloads")
+    print(f"  data/raw/       : {n_raw} images")
+    print(f"  data/reference/ : {n_ref} images")
+    print(f"\nNext: python lora_pipeline.py")
     print(f"{'='*62}")
 
 

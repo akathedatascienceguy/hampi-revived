@@ -9,20 +9,7 @@ dist/
 build/
 .eggs/
 
-# All image files (too large / generated)
-*.jpg
-*.jpeg
-*.JPG
-*.JPEG
-*.png
-*.PNG
-*.webp
-*.bmp
-*.tiff
-*.tif
-*.gif
-
-# Data directories
+# ── Input data (never commit raw images or training crops) ────────────────────
 data/raw/
 data/processed/
 data/reference/
@@ -30,41 +17,48 @@ data/lora_train/
 data/lora_dataset/
 !data/.gitkeep
 
-# All outputs (reconstructions, weights, plots)
-outputs/
-!outputs/.gitkeep
-
-# 3D files
-*.ply
-*.obj
-*.glb
-*.gltf
-
-# Large model weights
+# ── Large model weights ───────────────────────────────────────────────────────
 *.pt
 *.pth
 *.bin
 *.safetensors
+# But DO track the LoRA weights we ship
+!outputs/lora_weights/hampi_lora.pt
 
-# Jupyter
-.ipynb_checkpoints/
-*.ipynb_checkpoints
+# ── 3D / mesh files (large) ──────────────────────────────────────────────────
+*.ply
+*.obj
+*.glb
+*.gltf
+outputs/meshes/
+outputs/point_clouds/
 
-# Environment
-.env
-.env.local
-*.env
+# ── Generated visualizations (reproducible, no need to track) ────────────────
+outputs/visualizations/
+outputs/reports/
+outputs/features/
+outputs/candidates/
 
-# IDE
+# ── Interactive HTML (too large) ─────────────────────────────────────────────
+outputs/**/*.html
+
+# ── OS / IDE ─────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS
-.DS_Store
-Thumbs.db
+# ── Environment ───────────────────────────────────────────────────────────────
+.env
+.env.local
+*.env
 
-# Logs
+# ── Jupyter ───────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
 *.log
 logs/

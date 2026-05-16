@@ -311,6 +311,10 @@ def phase2_train_lora() -> list[float]:
                     loss=f"{np.mean(losses[-20:]):.4f}",
                     lr=f"{lr_scheduler.get_last_lr()[0]:.1e}"
                 )
+            if step % 100 == 0:
+                ckpt = {k: v.cpu() for k, v in unet.state_dict().items() if "lora_" in k}
+                torch.save(ckpt, LORA_FILE)
+                print(f"  [ckpt] step {step} — saved {LORA_FILE}")
 
     pbar.close()
     final_loss = np.mean(losses[-50:]) if len(losses) >= 50 else np.mean(losses)
